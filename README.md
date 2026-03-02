@@ -50,41 +50,45 @@ agentic_system/
 
 ## 🚀 How to Run the Demo
 
-To test the multi-layered logic, execute the interactive python demo runner. Ensure you have `numpy` and `torch` installed.
+To test the multi-layered logic, execute the interactive python demo runner. Ensure you have `numpy`, `torch`, and `streamlit` installed.
 
 ```bash
-cd P7
+# From the root directory
+pip install -r agentic_system/requirements.txt
 python demo.py
 ```
 
-The script simulates 3 distinct student scenarios:
+The script will launch a **Streamlit Dashboard** simulating 3 distinct student scenarios:
 1. **Normal Engagement**: A stable baseline with no alerts.
-2. **Gradual Decline**: A slow dip triggering RL evaluation, ReAct memory reflection, and a pivot in strategy.
+2. **Gradual Decline**: A slow dip triggering RL evaluation ($R_{intervene}$), ReAct memory reflection, and a pivot in strategy.
 3. **Sudden Performance Drop**: A critical rupture triggering an immediate emergency Human Escalation.
 
 ---
 
 ## 🏆 Novel Components & Potential Patent Claims
 
-This system introduces several novel methodologies differing significantly from current black-box educational data mining practices. The following components represent strong candidates for patent claims:
+This system introduces specific, non-obvious mathematical methodologies and architectural constraints that differ significantly from current black-box educational data mining practices. The following four technical mechanisms represent the core patent claims of the system:
 
-### 1. Dynamic Behavioral Drift Modeling via Dual-Window Continuous Baseline
-**Novelty**: Isolating the $n$-th derivative (rate of change) in behavior using dual sliding windows against a user's *own* historical norm, rather than global cohort means.
+### 1. Cognitive Load vs. Behavioral Engagement Indexing Engine
+**Novelty**: Moving beyond binary predictive models to a continuous, mathematically generated dimension of cognitive burden.
 
-*   **Methodology for Personalized Continuous Telemetry Assessment**: A computerized method for detecting disengagement by establishing a static personalized baseline window (e.g., $t-17$ to $t-3$) and continuously comparing it against an active behavioral window (e.g., $t-2$ to $t$).
-*   **Derivative-Based Anomaly Score Generation**: Creating a unified `Normalized Drift Score` formulated specifically by calculating the proportional variance and targeted decline rates (e.g., login variance, session contraction rate) against localized historical behavior.
-*   **Cognitive Burden Isolation (Hesitation Metric Algorithm)**: A specific method for mathematically isolating "Active Hesitation Time" from general "Idle Time" using the formula: $H_t = (\text{Total Session Time} - \text{Active Scrolling Time}) \times (1 + \text{DOM Erratic Click Variance})$. This constructs a proprietary telemetry proxy vector for conceptual overload.
+*   **Methodology**: Calculating a real-time **Cognitive Struggle Index ($CSI_t$)** by normalizing asynchronous video playback micro-events (rewinds) against real-time quiz hesitation decay.
+*   **Formula**: $CSI_t = \gamma * ( (R_k * W_{diff}) / H_k ) + (1-\gamma) * CSI_{t-1}$
 
-### 2. Agentic ReAct (Reason-Act-Reflect) Intervention Loop
-**Novelty**: The employment of an autonomous Reasoning-Acting-Reflecting agent layer strictly decoupled from the underlying risk prediction ML models, moving away from simple threshold-based trigger rules.
+### 2. Self-Correcting Intervention Router (Multi-Agent RL Framework)
+**Novelty**: An Actor-Critic multi-agent routing architecture governed by a proprietary proximal reward scalar that mathematically prevents generative "over-intervention" fatigue.
 
-*   **Decoupled Causal Diagnosis Layer**: A system that receives a unified `Normalized Drift Score` and applies heuristic mapping rules to classify behavioral decay into specific psychological categories (e.g., Burnout, Cognitive Overload, Conceptual Confusion, Disengagement).
-*   **Reflective Memory Constraint for Intervention Scaling**: A mechanism where the autonomous agent queries a localized memory structure of previous interventions applied to the precise user, mandating a pivot to an escalated intervention channel if the immediate prior action logged a `Success Score` below a defined threshold.
-*   **Critic vs Generator Multi-Agent Validation Protocol**: An architectural circuit-breaker where an independent 'Critic Agent' mathematically evaluates the LLM 'Generator Agent' output against strict pedagogical bounds (e.g., maximum reading grade level, negative sentiment thresholds), falling back to a deterministic safe escalation track if the generative output fails safety parameters.
+*   **Methodology**: When an anomaly is detected, an Actor Agent proposes an intervention. A Critic Agent dynamically maps this intervention against the student's *Hazard Shift* ($\Delta h(t)$) over the successive 48-hour epoch ($T_{eval}$).
+*   **Reward Function**: The Actor's policy updates based on $R_{intervene} = \lambda_1 (\frac{S - \hat{S}}{\hat{S}}) - \lambda_2 \cdot P_{fatigue}$, balancing strict retention gains against the annoyance factor of repeated nudges.
 
-### 3. Closed-Loop Contextual Bandit Reinforcement Optimization
-**Novelty**: The translation of delayed educational outcomes (retention vs. dropout weeks later) into immediate, proximal reinforcement proxy rewards using real-time behavioral vectors.
+### 3. Sandboxed Counterfactual Risk Analysis Engine
+**Novelty**: The autonomous execution of parallel simulation projections across the feature space prior to deploying any generative action.
 
-*   **Proximal Reward Formulation for Educational Interventions**: A system architecture calculating feedback loops by comparing pre-intervention predictions against post-intervention metrics ($t+3$). It creates an immediate quantitative reward ($R_t$) fed directly to the Bandit using the multivariate formula: $R_t = \alpha(\Delta T_d) + \beta(\Delta E) - \gamma(\text{decay\_penalty})$, where $\Delta T_d$ represents the survival engine delta and $\Delta E$ represents immediate engagement shifts.
-*   **Contextual Policy Update Mechanism**: Utilizing the proxy reward ($R_t$) to update the continuous probability distributions of a Contextual Bandit, linking the identified psychological root cause to the optimal action category globally across cohorts.
-*   **Safety-Bound Exploration Override**: A method to govern exploratory RL intervention behaviors by forcing deterministic action exploitation (e.g., immediate Human Escalation) anytime the calculated survival function (Predicted Dropout Days) falls beneath a critical safety threshold.
+*   **Methodology**: Upon triggering an intervention threshold, the system executes three parallel sandboxes generating counterfactual vectors ($X'_{strategy}$) (e.g., Do Nothing vs. Simplification vs. Syllabus Downgrade).
+*   **Execution**: By running Temporal Convolution Networks on each projection, the system autonomously routes the actual API response to the strategy simulating the minimal cumulative future hazard.
+
+### 4. Autonomous Pacing Governor
+**Novelty**: A closed-loop gating mechanism that structurally intercepts standard LMS syllabus API calls to forcefully regulate cognitive volume.
+
+*   **Methodology**: The governor intercepts `API GET` requests for subsequent syllabus modules. If a calculated exponential error rate exceeds an overload threshold ($\tau_{load}$), the Governor overrides the API response.
+*   **Execution**: It autonomously replaces the requested module with an autogenerated, logically synthesized sub-module containing specific variations of failed concepts from the preceding learning graph.

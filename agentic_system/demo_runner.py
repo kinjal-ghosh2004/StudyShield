@@ -69,7 +69,12 @@ class DemoRunner:
         student_data = self.students[student_id]
         if history and "success_score" not in history[-1]:
             # Provide RL Feedback based on current drift vs yesterday's
-            reward = self.rl_engine.calculate_reward(student_data["last_drift_score"], drift_score, student_data["last_time_to_dropout"], student_data["last_time_to_dropout"]) # Simplified Td mapping
+            # Mock true survival and counterfactual mapping for the demo
+            s_true = max(0.01, 1.0 - (drift_score / 10.0))
+            s_hat = max(0.01, 1.0 - (student_data["last_drift_score"] / 10.0))
+            p_fatigue = len(history)
+            
+            reward = self.rl_engine.calculate_proprietary_reward(s_true=s_true, s_counterfactual=s_hat, p_fatigue=p_fatigue)
             action_idx = self.planner.strategies.index(history[-1]["strategy_used"])
             self.rl_engine.update_policy(action_idx, reward)
             # Log success score back into memory for ReAct Reflection later

@@ -40,32 +40,19 @@ class ContextualBanditRLEngine:
         selected_action = np.argmax(sampled_theta)
         return selected_action
 
-    def calculate_reward(self, D_t1, D_t2, T_d1, T_d2, terminal_milestone=False, dropped_out=False):
+    def calculate_proprietary_reward(self, s_true: float, s_counterfactual: float, p_fatigue: float, lambda_1: float = 1.0, lambda_2: float = 0.5) -> float:
         """
-        Calculates the composite reward R_t after observing a temporal window delta t.
-        D_t1, D_t2: Drift score before and after intervention.
-        T_d1, T_d2: Predicted time-to-dropout before and after.
+        Calculates the proprietary Proximal Reward Scalar (R_intervene) as defined in the patent claims.
+        R_intervene = lambda_1 * ((S(t + T_eval) - S_hat(t + T_eval)) / S_hat(t + T_eval)) - lambda_2 * P_fatigue
         """
-        if dropped_out:
-            return -100  # Massive penalty
+        if s_counterfactual == 0:
+            s_counterfactual = 0.01 # Prevent division by zero
             
-        if terminal_milestone:
-            return 50  # Terminal milestone reached
-            
-        # Proximal Reward (engagement shift based on drift)
-        # Using abstract metrics, delta engagement represents improvement in behavioral vectors
-        delta_engagement = D_t1 - D_t2
+        retention_gain = (s_true - s_counterfactual) / s_counterfactual
+        r_intervene = (lambda_1 * retention_gain) - (lambda_2 * p_fatigue)
         
-        # Survival Reward: Delta in predicted time to dropout
-        delta_survival = T_d2 - T_d1 
-        
-        # Decay penalty (placeholder for a function estimating memory fade of early interventions)
-        decay_penalty = 0.5 if delta_survival < 1 else 0.0
-        
-        # R_t = alpha(Delta T_d) + beta(Delta E) - gamma(decay_penalty)
-        reward = self.w_survival * delta_survival + self.w_proximal * delta_engagement - 0.2 * decay_penalty
-        
-        return reward
+        return round(r_intervene, 4)
+
 
     def update_policy(self, action, reward):
         """
@@ -93,14 +80,14 @@ if __name__ == "__main__":
     action_idx = rl_engine.select_action(state_emb, time_to_dropout=5)
     print(f"Selected Action Index: {action_idx}")
     
-    # Simulate observing period delta t (e.g., 3 days later)
-    # The intervention helped: Drift went down from 3.0 to 1.5, T_d extended from 5 to 7.
-    D_before, D_after = 3.0, 1.5
-    Td_before, Td_after = 5, 7
+    # Simulate observing period delta t (e.g., 48 hours later)
+    # The intervention helped: True survival probability is 0.85, counterfactual was 0.60
+    S_true, S_hat = 0.85, 0.60
+    P_fatigue = 2.0 # The student had 2 interventions in the last week
     
-    # 2. Calculate Reward
-    reward = rl_engine.calculate_reward(D_before, D_after, Td_before, Td_after)
-    print(f"Calculated Composite Reward: {reward:.2f}")
+    # 2. Calculate Proprietary Reward
+    reward = rl_engine.calculate_proprietary_reward(s_true=S_true, s_counterfactual=S_hat, p_fatigue=P_fatigue)
+    print(f"Calculated Proprietary Reward (R_intervene): {reward:.4f}")
     
     # 3. Update Policy
     rl_engine.update_policy(action_idx, reward)

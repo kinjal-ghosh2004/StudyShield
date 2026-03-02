@@ -38,6 +38,44 @@ class RiskPredictor:
             "risk_reduction_percentage": round(reduction_percentage, 2)
         }
 
+    def run_counterfactual_sandboxes(self, base_hazard_rate: float, user_features: dict) -> dict:
+        """
+        Executes three parallel sandboxes generating counterfactual vectors for the feature space.
+        Uses Temporal Convolution Networks (mocked here) to predict respective dropout hazard h(t|X').
+        Returns the strategy producing the minimal calculated cumulative hazard.
+        """
+        # Baseline Feature Projections based on strategies
+        strategies = {
+            "alpha_do_nothing": 1.0,                       # No change to trajectory
+            "beta_inject_simplification": 0.70,            # 30% reduction in cognitive load features
+            "zeta_syllabus_downgrade": 0.50                # 50% reduction in pace/volume features
+        }
+        
+        results = {}
+        min_hazard = float('inf')
+        optimal_strategy = None
+        
+        for strategy, impact_multiplier in strategies.items():
+            # Mocking the Temporal Convolution Network execution on the projected feature vector X'
+            # h(t|X')
+            projected_hazard = base_hazard_rate * impact_multiplier
+            
+            # Simulate the TCN adding temporal volatility
+            tcn_noise = np.random.normal(0, 0.05) 
+            final_cumulative_hazard = max(0.01, min(0.99, projected_hazard + tcn_noise))
+            
+            results[strategy] = round(final_cumulative_hazard, 4)
+            
+            if final_cumulative_hazard < min_hazard:
+                min_hazard = final_cumulative_hazard
+                optimal_strategy = strategy
+                
+        return {
+            "optimal_strategy": optimal_strategy,
+            "minimized_hazard_rate": min_hazard,
+            "sandbox_results": results
+        }
+
     def classify_dropout_type(self, pace: float, lag: float, hesitation: float, volatility: float, accuracy_decay: float) -> dict:
         """
         Classifies the student into one of 5 dropout archetypes based on a heuristic weighting of features.
@@ -133,6 +171,19 @@ class RiskPredictor:
             "classification": dropout_class
         }
 
+    def calculate_csi(self, rewinds: int, difficulty_weight: float, hesitation_time: float, prev_csi: float = 0.0, gamma: float = 0.8) -> float:
+        """
+        Calculates the Cognitive Struggle Index (CSI_t) as defined in the patent claims.
+        CSI_t = \gamma * ( (R_k * W_diff) / H_k ) + (1-\gamma) * CSI_{t-1}
+        """
+        # Prevent division by zero
+        h_k = max(1.0, hesitation_time) 
+        
+        current_struggle = (rewinds * difficulty_weight) / h_k
+        csi_t = (gamma * current_struggle) + ((1 - gamma) * prev_csi)
+        
+        return round(csi_t, 4)
+
 if __name__ == "__main__":
     # Test the mock
     predictor = RiskPredictor()
@@ -140,3 +191,12 @@ if __name__ == "__main__":
     risk_info = predictor.predict(np.array([0.2, 4.0, 3.5, 2.0]), 3.8)
     print("Risk Prediction Output:")
     print(risk_info)
+    
+    # Test CSI Calculation
+    csi_score = predictor.calculate_csi(rewinds=5, difficulty_weight=1.2, hesitation_time=120)
+    print(f"\nCalculated Cognitive Struggle Index (CSI): {csi_score}")
+    
+    # Test Counterfactual Sandboxes
+    sandbox_output = predictor.run_counterfactual_sandboxes(base_hazard_rate=0.85, user_features={"pace": 0.2, "lag": 4.0})
+    print("\nCounterfactual Sandbox Output:")
+    print(sandbox_output)
