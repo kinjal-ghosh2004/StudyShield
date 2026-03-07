@@ -1,4 +1,4 @@
-venv/
+.venv/
 .env
 __pycache__/
 *.pyc
@@ -6,3 +6,13 @@ __pycache__/
 .pytest_cache/
 .DS_Store
 *.log
+*.csv
+
+# Local logs and debug files
+*_logs.txt
+*_error.txt
+report.txt
+db_health.json
+
+# Dataset directory
+OULAD/

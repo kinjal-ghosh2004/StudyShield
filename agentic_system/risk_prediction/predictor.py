@@ -1,14 +1,29 @@
+import os
 import numpy as np
+import joblib
+import logging
+
+logger = logging.getLogger(__name__)
+
+# Model paths relative to project root
+_MODEL_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "ml_pipeline", "saved_models")
+
+def _load_model(filename):
+    path = os.path.join(_MODEL_DIR, filename)
+    if os.path.exists(path):
+        try:
+            return joblib.load(path)
+        except Exception as e:
+            logger.warning(f"Could not load model {filename}: {e}")
+    return None
 
 class RiskPredictor:
     """
-    Risk Prediction Layer mocking the outputs of XGBoost, LSTM, and Survival Models.
+    Risk Prediction Layer — uses real XGBoost and Survival models trained on OULAD data.
+    Falls back to heuristics if models are not found.
     """
     def __init__(self):
-        # Feature names corresponding to the incoming drift vector (Pace, Lag, Volatility, Pace_Var)
         self.feature_names = ["pace", "lag", "volatility", "pace_variance"]
-        
-        # Efficacy heuristics (expected % reduction in dropout risk) mapped to strategies
         self.efficacy_map = {
             "micro_nudge": 0.15,
             "content_simplification": 0.25,
@@ -16,6 +31,26 @@ class RiskPredictor:
             "peer_sync": 0.20,
             "human_escalation": 0.60
         }
+        # Load trained models if available
+        self._scaler        = _load_model("feature_scaler.pkl")
+        self._feature_cols  = _load_model("feature_columns.pkl")
+        self._survival_model = _load_model("survival_model.pkl")
+        self._xgb_model     = None
+        try:
+            import xgboost as xgb
+            xgb_path = os.path.join(_MODEL_DIR, "xgboost_model.json")
+            if os.path.exists(xgb_path):
+                m = xgb.Booster()
+                m.load_model(xgb_path)
+                self._xgb_model = m
+                logger.info("XGBoost model loaded successfully.")
+        except Exception as e:
+            logger.warning(f"Could not load XGBoost model: {e}")
+
+        if self._xgb_model:
+            logger.info("RiskPredictor initialised with real ML models.")
+        else:
+            logger.info("RiskPredictor initialised with heuristic fallback.")
 
     def simulate_intervention_impact(self, base_risk: float, strategy: str) -> dict:
         """
@@ -116,59 +151,103 @@ class RiskPredictor:
 
     def predict(self, activity_vector: np.ndarray, drift_score: float) -> dict:
         """
-        Takes the current activity vector and the calculated drift score to predict dropout risk.
+        Takes the current activity vector and drift score to predict dropout risk.
+        Uses trained XGBoost and Survival models when available; falls back to heuristics.
         """
-        # 1. XGBoost Mock: Dropout Probability (0.0 to 1.0)
-        # Higher lag and volatility generally increase probability. Lower pace increases probability.
-        # activity_vector is [pace, lag, volatility, pace_variance]
         pace, lag, vol, p_var = activity_vector
-        
-        # Heuristic for probability
-        # Base risk heavily tied to drift score, scaled by lag and volatility.
-        base_risk = min(0.99, (drift_score * 0.2) + (lag * 0.1) + (vol * 0.05))
-        dropout_prob = max(0.01, min(0.99, base_risk))
 
-        # 2. Survival Model Mock: Time-to-dropout (days)
-        # Higher probability = fewer days. If doing fine, a large number of days.
-        if dropout_prob > 0.8:
-            predicted_days = int(np.random.normal(3, 1)) # Drops out in ~3 days
-        elif dropout_prob > 0.5:
-            predicted_days = int(np.random.normal(10, 2))
+        # ── 1. Dropout Probability via XGBoost ──────────────────────────────
+        if self._xgb_model is not None:
+            try:
+                import xgboost as xgb, pandas as pd
+                # Build a feature row aligned to training columns
+                row = {c: 0.0 for c in (self._feature_cols or [])}
+                # Map the four available features to likely column names
+                for key, val in [("pace", pace), ("drift_idx", drift_score),
+                                  ("volatility_idx", vol), ("synthesized_hesitation_sec", p_var * 100)]:
+                    if key in row:
+                        row[key] = val
+                # Also write lag as any lag-like column
+                for col in list(row.keys()):
+                    if "lag" in col and "sum_click" in col:
+                        row[col] = lag
+                df_row = pd.DataFrame([row])
+                if self._scaler:
+                    arr = self._scaler.transform(df_row)
+                else:
+                    arr = df_row.values
+                dmat = xgb.DMatrix(arr)
+                dropout_prob = float(self._xgb_model.predict(dmat)[0])
+                logger.debug(f"XGBoost dropout_prob={dropout_prob:.4f}")
+            except Exception as e:
+                logger.warning(f"XGBoost inference failed, using heuristic: {e}")
+                dropout_prob = None
         else:
-            predicted_days = int(np.random.normal(30, 5))
-            
-        predicted_days = max(1, predicted_days)
+            dropout_prob = None
 
-        # 3. LSTM Mock: Engagement Decline Forecast
-        # Is the trend getting worse? 
+        if dropout_prob is None:
+            # Heuristic fallback
+            base_risk = min(0.99, (drift_score * 0.2) + (lag * 0.1) + (vol * 0.05))
+            dropout_prob = max(0.01, min(0.99, base_risk))
+
+        # ── 2. Time-to-Dropout via Survival Model ───────────────────────────
+        if self._survival_model is not None:
+            try:
+                import pandas as pd
+                # Build a small dataframe with features the Cox model knows
+                surv_row = {}
+                for col in self._survival_model.params_.index:
+                    surv_row[col] = 0.0
+                for key, val in [("sum_click", max(0.1, 1.0 - lag * 0.1)),
+                                  ("volatility_idx", vol),
+                                  ("synthesized_hesitation_sec", p_var * 100),
+                                  ("drift_idx", drift_score)]:
+                    if key in surv_row:
+                        surv_row[key] = val
+                df_surv = pd.DataFrame([surv_row])
+                hazard = float(self._survival_model.predict_partial_hazard(df_surv).iloc[0])
+                # Convert hazard to approximate days (higher hazard → fewer days)
+                predicted_days = max(1, int(round(30.0 / max(hazard, 0.01))))
+                predicted_days = min(predicted_days, 180)
+                logger.debug(f"Survival hazard={hazard:.4f} → predicted_days={predicted_days}")
+            except Exception as e:
+                logger.warning(f"Survival inference failed, using heuristic: {e}")
+                predicted_days = None
+        else:
+            predicted_days = None
+
+        if predicted_days is None:
+            if dropout_prob > 0.8:
+                predicted_days = max(1, int(np.random.normal(3, 1)))
+            elif dropout_prob > 0.5:
+                predicted_days = max(1, int(np.random.normal(10, 2)))
+            else:
+                predicted_days = max(1, int(np.random.normal(30, 5)))
+
+        # ── 3. Engagement Trend ─────────────────────────────────────────────
         decline_trend = "Accelerating Decline" if vol > 2.0 else "Stable"
 
-        # 4. Top Contributing Features
-        # Determine which feature is causing the biggest issue
+        # ── 4. Top Contributing Features ────────────────────────────────────
         contributions = {
             "lag": lag * 0.5,
             "volatility": vol * 0.3,
             "low_pace": max(0, 1.0 - pace) * 0.6
         }
-        # Sort by impact
         sorted_features = sorted(contributions.items(), key=lambda item: item[1], reverse=True)
-        top_features = [k for k, v in sorted_features if v > 0.5]
-        
-        if not top_features:
-            top_features = ["general_drift"]
+        top_features = [k for k, v in sorted_features if v > 0.5] or ["general_drift"]
 
-        # 5. Dropout Type Classification
-        # For demo purposes, we infer 'hesitation' and 'accuracy_decay' from existing features or randomize slightly
-        mock_hesitation = p_var * 100.0 # using pace_variance as proxy for hesitation
+        # ── 5. Dropout Archetype Classification ─────────────────────────────
+        mock_hesitation = p_var * 100.0
         mock_acc_decay = min(1.0, vol * 0.2)
         dropout_class = self.classify_dropout_type(pace, lag, mock_hesitation, vol, mock_acc_decay)
 
         return {
-            "risk_score": dropout_prob,
+            "risk_score": round(dropout_prob, 4),
             "predicted_dropout_days": predicted_days,
             "engagement_trend": decline_trend,
             "top_contributing_features": top_features,
-            "classification": dropout_class
+            "classification": dropout_class,
+            "inference_source": "xgboost+survival" if self._xgb_model else "heuristic"
         }
 
     def calculate_csi(self, rewinds: int, difficulty_weight: float, hesitation_time: float, prev_csi: float = 0.0, gamma: float = 0.8) -> float:

@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StudyShield — AI Dropout Prevention</title>
+  <meta name="description" content="Real-time AI-powered student dropout prevention dashboard with behavioural drift detection, ML risk scoring, and GenAI interventions." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <style>
+    /* ══════════════════════════════════════════
+       DESIGN SYSTEM
+    ══════════════════════════════════════════ */
+    :root {
+      --bg:          #090d18;
+      --surface:     #0f1629;
+      --surface2:    #141d38;
+      --border:      rgba(99,140,255,0.15);
+      --accent:      #6c8eff;
+      --accent2:     #a78bfa;
+      --green:       #34d399;
+      --amber:       #fbbf24;
+      --red:         #f87171;
+      --text:        #e2e8f0;
+      --text-muted:  #7b8eb8;
+      --glow:        rgba(108,142,255,0.3);
+      --radius:      14px;
+      --radius-sm:   8px;
+      font-family: 'Inter', sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      overflow-x: hidden;
+    }
+
+    /* ── Sidebar ──────────────────────────────── */
+    .sidebar {
+      width: 260px;
+      min-width: 260px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 24px 16px;
+      gap: 6px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px 20px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 12px;
+    }
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      box-shadow: 0 0 16px var(--glow);
+    }
+    .logo-text { font-size: 16px; font-weight: 700; letter-spacing: -0.3px; }
+    .logo-sub { font-size: 11px; color: var(--text-muted); }
+
+    .sidebar-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      padding: 12px 12px 4px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 13.5px;
+      color: var(--text-muted);
+      transition: all 0.2s;
+      border: 1px solid transparent;
+    }
+    .nav-item:hover, .nav-item.active {
+      background: rgba(108,142,255,0.1);
+      color: var(--accent);
+      border-color: var(--border);
+    }
+    .nav-item.active { color: var(--accent); font-weight: 500; }
+    .nav-icon { font-size: 16px; }
+
+    .student-select { margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border); }
+    .student-select label { font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 6px; }
+    select, input {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    select:focus, input:focus { border-color: var(--accent); }
+
+    /* ── Main Content ─────────────────────────── */
+    .main {
+      flex: 1;
+      padding: 28px 32px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* ── Header ─────────────────────────────────  */
+    .page-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .page-title { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+    .page-subtitle { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+    .live-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(52,211,153,0.1);
+      border: 1px solid rgba(52,211,153,0.25);
+      color: var(--green);
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .pulse {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.8); }
+    }
+
+    /* ── Metric Cards Grid ──────────────────────  */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 16px;
+    }
+    .metric-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .metric-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+    .metric-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      border-radius: var(--radius) var(--radius) 0 0;
+    }
+    .metric-card.blue::before { background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+    .metric-card.green::before { background: var(--green); }
+    .metric-card.amber::before { background: var(--amber); }
+    .metric-card.red::before { background: var(--red); }
+
+    .metric-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-muted); }
+    .metric-value { font-size: 28px; font-weight: 700; letter-spacing: -1px; margin: 8px 0 4px; }
+    .metric-sub { font-size: 12px; color: var(--text-muted); }
+    .metric-card.red .metric-value { color: var(--red); }
+    .metric-card.amber .metric-value { color: var(--amber); }
+    .metric-card.green .metric-value { color: var(--green); }
+    .metric-card.blue .metric-value { color: var(--accent); }
+
+    /* ── Content Grid ───────────────────────────  */
+    .content-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .content-grid.wide { grid-template-columns: 2fr 1fr; }
+    @media (max-width: 1100px) {
+      .content-grid, .content-grid.wide { grid-template-columns: 1fr; }
+    }
+
+    /* ── Panel ──────────────────────────────────  */
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .panel-title { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+    .panel-body { padding: 20px; }
+
+    /* ── Button ─────────────────────────────────  */
+    .btn {
+      padding: 8px 16px;
+      border-radius: var(--radius-sm);
+      border: none;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff;
+      box-shadow: 0 4px 14px var(--glow);
+    }
+    .btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
+    .btn-ghost {
+      background: rgba(108,142,255,0.08);
+      color: var(--accent);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { background: rgba(108,142,255,0.15); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+
+    /* ── Risk Gauge ─────────────────────────────  */
+    .gauge-wrap { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .gauge-arc { width: 180px; height: 90px; position: relative; }
+    .gauge-arc svg { width: 100%; height: 100%; overflow: visible; }
+    .gauge-pct { font-size: 32px; font-weight: 800; letter-spacing: -1px; }
+    .gauge-label { font-size: 12px; color: var(--text-muted); letter-spacing: 0.5px; text-transform: uppercase; }
+
+    /* ── Behaviour Radar placeholder ────────────  */
+    .chart-wrap { position: relative; height: 220px; }
+
+    /* ── Telemetry feed ─────────────────────────  */
+    .tele-feed { display: flex; flex-direction: column; gap: 8px; max-height: 280px; overflow-y: auto; }
+    .tele-event {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      background: var(--surface2);
+      border-radius: var(--radius-sm);
+      font-size: 12.5px;
+      border-left: 3px solid var(--accent);
+      animation: slideIn 0.3s ease;
+    }
+    .tele-event.login { border-color: var(--green); }
+    .tele-event.video_play { border-color: var(--accent2); }
+    .tele-event.quiz_submit { border-color: var(--amber); }
+    .tele-event.mouse_hesitation { border-color: var(--red); }
+    @keyframes slideIn { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: translateX(0); } }
+    .tele-type { font-weight: 600; text-transform: uppercase; font-size: 10px; letter-spacing: 0.5px; min-width: 90px; }
+    .tele-meta { color: var(--text-muted); font-size: 11.5px; }
+    .tele-time { margin-left: auto; color: var(--text-muted); font-size: 11px; font-family: 'JetBrains Mono', monospace; }
+
+    /* ── GenAI Intervention card ────────────────  */
+    .intervention-card {
+      background: linear-gradient(135deg, rgba(108,142,255,0.06), rgba(167,139,250,0.08));
+      border: 1px solid rgba(108,142,255,0.2);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .intervention-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      margin-bottom: 12px;
+    }
+    .badge-strategy { background: rgba(108,142,255,0.15); color: var(--accent); }
+    .badge-pass { background: rgba(52,211,153,0.15); color: var(--green); }
+    .badge-fail { background: rgba(248,113,113,0.15); color: var(--red); }
+
+    .intervention-text { font-size: 14px; line-height: 1.7; color: var(--text); }
+    .intervention-task {
+      margin-top: 14px;
+      padding: 10px 14px;
+      background: rgba(52,211,153,0.08);
+      border-radius: var(--radius-sm);
+      border-left: 3px solid var(--green);
+      font-size: 13px;
+      color: var(--green);
+    }
+    .intervention-task::before { content: "✓ Action: "; font-weight: 600; }
+
+    /* ── Log Table ──────────────────────────────  */
+    .log-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    .log-table th {
+      text-align: left;
+      padding: 8px 12px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+    }
+    .log-table td { padding: 10px 12px; border-bottom: 1px solid rgba(99,140,255,0.06); }
+    .log-table tr:last-child td { border-bottom: none; }
+    .risk-pill {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .risk-high { background: rgba(248,113,113,0.15); color: var(--red); }
+    .risk-med  { background: rgba(251,191,36,0.15);  color: var(--amber); }
+    .risk-low  { background: rgba(52,211,153,0.15);  color: var(--green); }
+
+    /* ── Loader ─────────────────────────────────  */
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .skeleton {
+      background: linear-gradient(90deg, var(--surface2) 25%, var(--surface) 50%, var(--surface2) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.3s infinite;
+      border-radius: 6px;
+      height: 14px;
+    }
+    @keyframes shimmer { to { background-position: -200% 0; } }
+
+    .empty-state { text-align: center; padding: 32px; color: var(--text-muted); font-size: 13px; }
+    .empty-icon { font-size: 28px; margin-bottom: 8px; }
+
+    /* ── Toast ──────────────────────────────────  */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      padding: 12px 20px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 13px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      transform: translateY(80px);
+      opacity: 0;
+      transition: all 0.35s cubic-bezier(0.34,1.56,0.64,1);
+      z-index: 999;
+      max-width: 320px;
+    }
+    #toast.show { transform: translateY(0); opacity: 1; }
+
+    /* ── Scrollbar ──────────────────────────────  */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<!-- ══════════ SIDEBAR ══════════════════════════ -->
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-icon">🛡️</div>
+    <div>
+      <div class="logo-text">StudyShield</div>
+      <div class="logo-sub">AI Dropout Prevention</div>
+    </div>
+  </div>
+
+  <div class="sidebar-label">Navigation</div>
+  <div class="nav-item active" onclick="showSection('overview')" id="nav-overview">
+    <span class="nav-icon">📊</span> Overview
+  </div>
+  <div class="nav-item" onclick="showSection('telemetry')" id="nav-telemetry">
+    <span class="nav-icon">📡</span> Live Telemetry
+  </div>
+  <div class="nav-item" onclick="showSection('intervention')" id="nav-intervention">
+    <span class="nav-icon">🤖</span> GenAI Intervention
+  </div>
+  <div class="nav-item" onclick="showSection('logs')" id="nav-logs">
+    <span class="nav-icon">📋</span> Intervention Logs
+  </div>
+
+  <div class="sidebar-label">Settings</div>
+  <div style="padding: 0 4px; display: flex; flex-direction: column; gap: 10px;">
+    <div>
+      <label style="font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:6px;">API Base URL</label>
+      <input type="text" id="apiBase" value="http://localhost:8000" />
+    </div>
+    <div>
+      <label style="font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:6px;">Student ID</label>
+      <select id="studentId">
+        <option value="STU_TEST_001">STU_TEST_001</option>
+        <option value="STU_TEST_002">STU_TEST_002</option>
+        <option value="Alice_001">Alice_001</option>
+        <option value="Bob_002">Bob_002</option>
+        <option value="Charlie_003">Charlie_003</option>
+      </select>
+    </div>
+  </div>
+
+  <div style="margin-top: 20px; padding: 12px; background: var(--surface2); border-radius: var(--radius-sm); border: 1px solid var(--border);">
+    <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">System Status</div>
+    <div id="apiStatus" style="font-size:12px;display:flex;align-items:center;gap:6px;color:var(--text-muted)">
+      <div class="spinner"></div> Connecting...
+    </div>
+  </div>
+</aside>
+
+<!-- ══════════ MAIN ════════════════════════════ -->
+<main class="main">
+
+  <!-- ── PAGE HEADER ─────────────────────────── -->
+  <div class="page-header">
+    <div>
+      <div class="page-title">Student Risk Intelligence</div>
+      <div class="page-subtitle">Real-time behavioural drift detection powered by XGBoost + Gemini AI</div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;">
+      <div class="live-badge"><div class="pulse"></div> Live</div>
+      <button class="btn btn-primary" onclick="runFullPipeline()" id="runBtn">
+        ⚡ Run Full Pipeline
+      </button>
+    </div>
+  </div>
+
+  <!-- ══ SECTION: OVERVIEW ════════════════════ -->
+  <div id="section-overview">
+    <!-- Metric Cards -->
+    <div class="metrics-grid" id="metricCards">
+      <div class="metric-card blue">
+        <div class="metric-label">Risk Score</div>
+        <div class="metric-value" id="m-risk">—</div>
+        <div class="metric-sub">XGBoost inference</div>
+      </div>
+      <div class="metric-card amber">
+        <div class="metric-label">Days to Dropout</div>
+        <div class="metric-value" id="m-days">—</div>
+        <div class="metric-sub">Survival Model</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Engagement Trend</div>
+        <div class="metric-value" id="m-trend" style="font-size:16px;margin-top:12px;">—</div>
+        <div class="metric-sub">LSTM Analysis</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Inference Source</div>
+        <div class="metric-value" id="m-source" style="font-size:12px;margin-top:10px;line-height:1.4">—</div>
+        <div class="metric-sub">Model backend</div>
+      </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="content-grid wide">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">🔬 Behavioural Signal History</div>
+          <div style="font-size:11px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;" id="driftBadge">—</div>
+        </div>
+        <div class="panel-body">
+          <div class="chart-wrap"><canvas id="signalChart"></canvas></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">🎯 Risk Gauge</div>
+        </div>
+        <div class="panel-body" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:240px;">
+          <div class="gauge-wrap">
+            <svg class="gauge-arc" viewBox="0 0 180 90">
+              <path d="M10,90 A80,80 0 0,1 170,90" fill="none" stroke="var(--surface2)" stroke-width="14" stroke-linecap="round"/>
+              <path id="gaugePath" d="M10,90 A80,80 0 0,1 170,90" fill="none" stroke="url(#gaugeGrad)" stroke-width="14" stroke-linecap="round" stroke-dasharray="251.2" stroke-dashoffset="251.2" style="transition:stroke-dashoffset 1s ease;"/>
+              <defs>
+                <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#34d399"/>
+                  <stop offset="50%" stop-color="#fbbf24"/>
+                  <stop offset="100%" stop-color="#f87171"/>
+                </linearGradient>
+              </defs>
+            </svg>
+            <div class="gauge-pct" id="gaugePct">—</div>
+            <div class="gauge-label">Dropout Probability</div>
+          </div>
+          <div id="dropout-type" style="margin-top:20px;text-align:center;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contributing Features -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">📌 Top Contributing Features</div>
+        <button class="btn btn-ghost" onclick="runRisk()" id="riskBtn">↻ Refresh Risk</button>
+      </div>
+      <div class="panel-body" id="featureBody">
+        <div class="empty-state"><div class="empty-icon">📡</div>Run the pipeline to see top dropout risk signals</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SECTION: TELEMETRY ═══════════════════ -->
+  <div id="section-telemetry" style="display:none;">
+    <div class="content-grid">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">📡 Live Event Stream</div>
+          <button class="btn btn-primary" onclick="sendTelemetryBatch()">Send Events</button>
+        </div>
+        <div class="panel-body">
+          <div class="tele-feed" id="teleFeed">
+            <div class="empty-state"><div class="empty-icon">📡</div>No events yet. Click "Send Events" to stream mock LMS data.</div>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">📊 Event Type Distribution</div>
+        </div>
+        <div class="panel-body">
+          <div style="height:220px;"><canvas id="teleChart"></canvas></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SECTION: GENAI INTERVENTION ═════════ -->
+  <div id="section-intervention" style="display:none;">
+    <div class="content-grid wide">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">🤖 Agentic ReAct Loop</div>
+          <button class="btn btn-primary" onclick="runIntervention()" id="interBtn">⚡ Generate Intervention</button>
+        </div>
+        <div class="panel-body">
+          <div id="interBody">
+            <div class="empty-state"><div class="empty-icon">🤖</div>Click "Generate Intervention" to run the full Thought→Act→Critic GenAI pipeline</div>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">🔍 ReAct Trace</div></div>
+        <div class="panel-body">
+          <div id="reactTrace" style="font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.8;color:var(--text-muted);">
+            <div class="empty-state"><div class="empty-icon">🔍</div>Reasoning trace will appear here</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SECTION: LOGS ════════════════════════ -->
+  <div id="section-logs" style="display:none;">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">📋 Intervention History</div>
+        <button class="btn btn-ghost" onclick="loadLogs()">↻ Refresh</button>
+      </div>
+      <div class="panel-body" style="overflow-x:auto;">
+        <table class="log-table" id="logTable">
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Student</th>
+              <th>Risk Score</th>
+              <th>Root Cause</th>
+              <th>Strategy</th>
+              <th>Critic</th>
+            </tr>
+          </thead>
+          <tbody id="logBody">
+            <tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📋</div>No interventions logged yet</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+/* ══════════════════════════════════════════════
+   UTILS
+══════════════════════════════════════════════ */
+const $ = id => document.getElementById(id);
+const apiBase = () => $('apiBase').value.replace(/\/$/, '');
+const studentId = () => $('studentId').value;
+
+let signalChart, teleChart;
+const teleEventCounts = { login: 0, video_play: 0, quiz_submit: 0, mouse_hesitation: 0 };
+const interventionLog = [];
+
+function toast(msg, type = 'info') {
+  const el = $('toast');
+  el.innerHTML = (type === 'error' ? '❌ ' : type === 'success' ? '✅ ' : 'ℹ️ ') + msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+async function apiFetch(path, options = {}) {
+  const resp = await fetch(apiBase() + path, {
+    headers: { 'Content-Type': 'application/json' },
+    ...options
+  });
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+  return resp.json();
+}
+
+/* ── Navigation ──────────────────────────────── */
+function showSection(name) {
+  ['overview','telemetry','intervention','logs'].forEach(s => {
+    $(`section-${s}`).style.display = s === name ? '' : 'none';
+    $(`nav-${s}`).classList.toggle('active', s === name);
+  });
+  if (name === 'logs') loadLogs();
+}
+
+/* ── API Health Check ────────────────────────── */
+async function checkHealth() {
+  try {
+    await apiFetch('/health');
+    $('apiStatus').innerHTML = '<span style="color:var(--green)">● API Connected</span>';
+  } catch {
+    $('apiStatus').innerHTML = '<span style="color:var(--red)">● API Offline</span>';
+  }
+}
+
+/* ══════════════════════════════════════════════
+   SIGNAL CHART
+══════════════════════════════════════════════ */
+function initSignalChart() {
+  const ctx = $('signalChart').getContext('2d');
+  signalChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [
+        { label: 'Pace', data: [], borderColor: '#6c8eff', backgroundColor: 'rgba(108,142,255,0.08)', fill: true, tension: 0.4, pointRadius: 3 },
+        { label: 'Lag', data: [], borderColor: '#fbbf24', backgroundColor: 'rgba(251,191,36,0.06)', fill: true, tension: 0.4, pointRadius: 3 },
+        { label: 'Volatility', data: [], borderColor: '#f87171', backgroundColor: 'rgba(248,113,113,0.06)', fill: true, tension: 0.4, pointRadius: 3 }
+      ]
+    },
+    options: {
+      animation: { duration: 600 },
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#7b8eb8', font: { size: 11 } } } },
+      scales: {
+        x: { grid: { color: 'rgba(99,140,255,0.07)' }, ticks: { color: '#7b8eb8', font: { size: 10 } } },
+        y: { grid: { color: 'rgba(99,140,255,0.07)' }, ticks: { color: '#7b8eb8', font: { size: 10 } } }
+      }
+    }
+  });
+}
+
+function pushSignalData(pace, lag, volatility) {
+  const t = new Date().toLocaleTimeString('en', { hour12: false, hour:'2-digit', minute:'2-digit', second:'2-digit' });
+  const MAX = 20;
+  [signalChart.data.labels, ...signalChart.data.datasets.map(d => d.data)].forEach(arr => {
+    if (arr.length >= MAX) arr.shift();
+  });
+  signalChart.data.labels.push(t);
+  signalChart.data.datasets[0].data.push(pace);
+  signalChart.data.datasets[1].data.push(lag);
+  signalChart.data.datasets[2].data.push(volatility);
+  signalChart.update('none');
+}
+
+/* ── Gauge ───────────────────────────────────── */
+function updateGauge(prob) {
+  const pct = Math.round(prob * 100);
+  $('gaugePct').textContent = pct + '%';
+  $('gaugePct').style.color = prob > 0.7 ? 'var(--red)' : prob > 0.4 ? 'var(--amber)' : 'var(--green)';
+  const circumference = 251.2;
+  const offset = circumference - (circumference * prob);
+  $('gaugePath').style.strokeDashoffset = offset;
+}
+
+/* ══════════════════════════════════════════════
+   RISK PREDICTION
+══════════════════════════════════════════════ */
+async function runRisk() {
+  $('riskBtn').disabled = true;
+  $('riskBtn').innerHTML = '<span class="spinner"></span>';
+
+  // Synthesise a realistic activity vector + drift score
+  const pace      = parseFloat((Math.random() * 0.6 + 0.1).toFixed(2));
+  const lag       = parseFloat((Math.random() * 7).toFixed(1));
+  const vol       = parseFloat((Math.random() * 3).toFixed(2));
+  const pVar      = parseFloat((Math.random() * 2).toFixed(2));
+  const drift     = parseFloat((lag * 0.4 + vol * 0.3).toFixed(2));
+
+  pushSignalData(pace, lag, vol);
+  $('driftBadge').textContent = `Drift D(t) = ${drift}`;
+
+  try {
+    const result = await apiFetch('/api/v1/risk_prediction/predict', {
+      method: 'POST',
+      body: JSON.stringify({
+        student_id: studentId(),
+        activity_vector: [pace, lag, vol, pVar],
+        drift_score: drift
+      })
+    });
+
+    const risk = result.risk_score ?? result.risk_info?.risk_score;
+    const days = result.predicted_dropout_days ?? result.risk_info?.predicted_dropout_days;
+    const trend = result.engagement_trend ?? result.risk_info?.engagement_trend;
+    const features = result.top_contributing_features ?? result.risk_info?.top_contributing_features ?? [];
+    const src = result.inference_source ?? result.risk_info?.inference_source ?? 'heuristic';
+    const classification = result.classification ?? result.risk_info?.classification ?? {};
+
+    // Update metrics
+    const riskNum = typeof risk === 'number' ? risk : parseFloat(risk);
+    $('m-risk').textContent = (riskNum * 100).toFixed(1) + '%';
+    $('m-risk').style.color = riskNum > 0.7 ? 'var(--red)' : riskNum > 0.4 ? 'var(--amber)' : 'var(--green)';
+    $('m-days').textContent = days ?? '—';
+    $('m-trend').textContent = trend ?? '—';
+    $('m-trend').style.fontSize = '13px';
+    $('m-source').textContent = src;
+
+    // Card colours
+    const rCard = $('metricCards').children[0];
+    const dCard = $('metricCards').children[1];
+    rCard.className = `metric-card ${riskNum > 0.7 ? 'red' : riskNum > 0.4 ? 'amber' : 'green'}`;
+    dCard.className = `metric-card ${(days ?? 30) < 7 ? 'red' : (days ?? 30) < 14 ? 'amber' : 'green'}`;
+
+    updateGauge(riskNum);
+
+    // Dropout type
+    if (classification.dropout_type) {
+      $('dropout-type').innerHTML = `
+        <div style="font-size:13px;font-weight:600;color:var(--accent2);">${classification.dropout_type}</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:3px;">Confidence: ${(classification.confidence_score * 100).toFixed(0)}%</div>`;
+    }
+
+    // Features
+    if (features.length) {
+      $('featureBody').innerHTML = features.map((f, i) => {
+        const width = Math.max(15, 100 - i * 22);
+        return `<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+          <div style="width:90px;font-size:12px;font-weight:600;color:var(--text);">${f}</div>
+          <div style="flex:1;background:var(--surface2);border-radius:4px;height:8px;overflow:hidden;">
+            <div style="width:${width}%;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:4px;transition:width 0.8s ease;"></div>
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);width:40px;text-align:right;">${width}%</div>
+        </div>`;
+      }).join('');
+    }
+
+    toast('Risk prediction updated', 'success');
+  } catch(e) {
+    toast('Risk API failed: ' + e.message, 'error');
+  }
+
+  $('riskBtn').disabled = false;
+  $('riskBtn').innerHTML = '↻ Refresh Risk';
+}
+
+/* ══════════════════════════════════════════════
+   TELEMETRY
+══════════════════════════════════════════════ */
+const EVENT_TYPES = ['login', 'video_play', 'quiz_submit', 'mouse_hesitation'];
+
+async function sendTelemetryBatch() {
+  const events = [
+    { event_type: 'login', student_id: studentId(), page_id: 'home', duration_sec: 0, metadata: {} },
+    { event_type: 'video_play', student_id: studentId(), page_id: 'module_3', duration_sec: 245, metadata: { video_id: 'lec_3_2' } },
+    { event_type: 'quiz_submit', student_id: studentId(), page_id: 'quiz_4', duration_sec: 600, metadata: { score: 62, max_score: 100 } },
+    { event_type: 'mouse_hesitation', student_id: studentId(), page_id: 'assignment_2', duration_sec: 420, metadata: { hesitation_ms: 8200 } }
+  ];
+
+  for (const ev of events) {
+    try {
+      await apiFetch('/api/v1/telemetry/event', { method: 'POST', body: JSON.stringify(ev) });
+      addTeleEvent(ev.event_type, ev.page_id, ev.duration_sec);
+      teleEventCounts[ev.event_type] = (teleEventCounts[ev.event_type] || 0) + 1;
+      updateTeleChart();
+      await new Promise(r => setTimeout(r, 400));
+    } catch(e) {
+      addTeleEvent(ev.event_type + ' (failed)', ev.page_id, 0);
+    }
+  }
+  toast('Telemetry batch sent', 'success');
+}
+
+function addTeleEvent(type, page, dur) {
+  const feed = $('teleFeed');
+  const emptyState = feed.querySelector('.empty-state');
+  if (emptyState) feed.innerHTML = '';
+
+  const now = new Date().toLocaleTimeString('en', { hour12: false });
+  const el = document.createElement('div');
+  el.className = `tele-event ${type}`;
+  el.innerHTML = `
+    <span class="tele-type">${type.replace('_', ' ')}</span>
+    <span class="tele-meta">page: ${page} · ${dur}s</span>
+    <span class="tele-time">${now}</span>`;
+  feed.prepend(el);
+  if (feed.children.length > 30) feed.lastElementChild.remove();
+}
+
+function initTeleChart() {
+  const ctx = $('teleChart').getContext('2d');
+  teleChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: EVENT_TYPES.map(e => e.replace('_', ' ')),
+      datasets: [{ data: [0, 0, 0, 0], backgroundColor: ['#34d399','#6c8eff','#fbbf24','#f87171'], borderWidth: 0 }]
+    },
+    options: {
+      cutout: '65%',
+      plugins: { legend: { labels: { color: '#7b8eb8', font: { size: 11 } } } },
+      responsive: true,
+      maintainAspectRatio: false
+    }
+  });
+}
+
+function updateTeleChart() {
+  teleChart.data.datasets[0].data = EVENT_TYPES.map(e => teleEventCounts[e] || 0);
+  teleChart.update();
+}
+
+/* ══════════════════════════════════════════════
+   GENAI INTERVENTION
+══════════════════════════════════════════════ */
+async function runIntervention() {
+  $('interBtn').disabled = true;
+  $('interBtn').innerHTML = '<span class="spinner"></span> Thinking...';
+  $('reactTrace').innerHTML = `<div style="color:var(--accent)">🤔 Thought: Analysing behavioural signals...</div>`;
+  $('interBody').innerHTML = `<div style="text-align:center;padding:32px;"><div class="spinner" style="width:24px;height:24px;border-width:3px;"></div><div style="margin-top:12px;font-size:13px;color:var(--text-muted)">Running Gemini ReAct loop…</div></div>`;
+
+  const payload = {
+    student_id: studentId(),
+    drift_score: 3.8,
+    drift_vector: [0.15, 6.0, 150.0, 2.2],
+    dropout_prob: 0.82,
+    time_to_dropout: 5,
+    top_features: ['volatility', 'lag'],
+    context: { demographic_group: 'group_A' },
+    intervention_history: []
+  };
+
+  try {
+    const res = await apiFetch('/api/v1/genai/intervene', { method: 'POST', body: JSON.stringify(payload) });
+
+    // Build ReAct trace
+    $('reactTrace').innerHTML = `
+      <div style="color:var(--accent2);margin-bottom:6px;">🤔 <b>Thought:</b> Diagnosed <em>${res.root_cause}</em> from drift signals</div>
+      <div style="color:var(--green);margin-bottom:6px;">⚡ <b>Action:</b> Selected strategy → <em>${res.strategy}</em></div>
+      <div style="color:var(--amber);margin-bottom:6px;">👁️ <b>Observation:</b> Generator produced personalised payload</div>
+      <div style="color:${res.critic_verdict?.safe_to_deliver !== false ? 'var(--green)' : 'var(--red)'};margin-bottom:6px;">
+        🔍 <b>Critic:</b> ${res.critic_verdict?.verdict ?? 'pass'} — ${res.critic_verdict?.message ?? ''}
+      </div>`;
+
+    // Render intervention card
+    const iv = res.intervention ?? {};
+    const criticPass = res.critic_verdict?.safe_to_deliver !== false;
+    $('interBody').innerHTML = `
+      <div class="intervention-card">
+        <span class="intervention-badge badge-strategy">Strategy: ${res.strategy?.replace('_', ' ')}</span>
+        <span class="intervention-badge ${criticPass ? 'badge-pass' : 'badge-fail'}" style="margin-left:6px;">
+          Critic: ${criticPass ? '✓ Approved' : '✗ Rejected'}
+        </span>
+        <div class="intervention-text" style="margin-top:14px;">
+          ${iv.explanation ? `<p style="margin-bottom:10px;">${iv.explanation}</p>` : ''}
+          ${iv.motivation ? `<p style="margin-bottom:10px;color:var(--accent2);">💬 ${iv.motivation}</p>` : ''}
+          ${iv.study_plan ? `<pre style="white-space:pre-wrap;font-size:12px;background:var(--surface2);padding:12px;border-radius:var(--radius-sm);margin-top:10px;">${iv.study_plan}</pre>` : ''}
+        </div>
+        ${iv.remedial_task ? `<div class="intervention-task">${iv.remedial_task}</div>` : ''}
+      </div>
+      ${iv.revision_notes ? `
+        <div class="panel" style="margin-top:16px;">
+          <div class="panel-header"><div class="panel-title">📝 Auto-generated Revision Notes</div></div>
+          <div class="panel-body" style="font-size:13px;">
+            <b>${iv.revision_notes.title}</b>
+            <ul style="margin-top:10px;margin-left:18px;line-height:1.9;">${(iv.revision_notes.key_concepts_summary||[]).map(c=>`<li>${c}</li>`).join('')}</ul>
+          </div>
+        </div>` : ''}
+      ${iv.adaptive_schedule ? `
+        <div class="panel" style="margin-top:16px;">
+          <div class="panel-header"><div class="panel-title">📅 Adaptive Schedule</div></div>
+          <div class="panel-body">
+            <div style="font-size:12.5px;color:var(--text-muted);margin-bottom:10px;">${iv.adaptive_schedule.rationale}</div>
+            ${(iv.adaptive_schedule.schedule||[]).map(day=>`
+              <div style="margin-bottom:12px;">
+                <div style="font-weight:600;font-size:13px;color:var(--accent2);">${day.day} · ${day.focus}</div>
+                ${(day.tasks||[]).map(t=>`<div style="font-size:12px;color:var(--text-muted);margin-left:12px;margin-top:3px;">• ${t.time_estimate} — ${t.action}</div>`).join('')}
+              </div>`).join('')}
+          </div>
+        </div>` : ''}`;
+
+    // Log entry
+    interventionLog.unshift({
+      ts: new Date().toLocaleTimeString(),
+      student: res.student_id,
+      risk: payload.dropout_prob,
+      cause: res.root_cause,
+      strategy: res.strategy,
+      critic: criticPass ? 'pass' : 'fail'
+    });
+
+    toast('Intervention generated ' + (res.intervention?.explanation?.length > 20 ? '(via Gemini)' : '(template)'), 'success');
+  } catch(e) {
+    $('interBody').innerHTML = `<div class="empty-state"><div class="empty-icon">❌</div>Error: ${e.message}</div>`;
+    toast('Intervention failed: ' + e.message, 'error');
+  }
+
+  $('interBtn').disabled = false;
+  $('interBtn').innerHTML = '⚡ Generate Intervention';
+}
+
+/* ══════════════════════════════════════════════
+   LOGS
+══════════════════════════════════════════════ */
+async function loadLogs() {
+  try {
+    const res = await apiFetch(`/api/v1/interventions/${studentId()}`);
+    const rows = Array.isArray(res) ? res : (res.logs ?? []);
+    renderLogs(rows.slice(0, 20));
+  } catch {
+    // Fall back to in-memory log
+    renderLogs(interventionLog);
+  }
+}
+
+function renderLogs(rows) {
+  if (!rows.length) {
+    $('logBody').innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📋</div>No interventions logged yet</div></td></tr>`;
+    return;
+  }
+  $('logBody').innerHTML = rows.map(r => {
+    const risk = parseFloat(r.risk ?? r.risk_score ?? 0);
+    const pill = risk > 0.7 ? 'risk-high' : risk > 0.4 ? 'risk-med' : 'risk-low';
+    return `<tr>
+      <td style="color:var(--text-muted);font-family:'JetBrains Mono',monospace;font-size:11px;">${r.ts ?? r.timestamp ?? '—'}</td>
+      <td>${r.student ?? r.student_id ?? '—'}</td>
+      <td><span class="risk-pill ${pill}">${(risk * 100).toFixed(0)}%</span></td>
+      <td>${r.cause ?? r.root_cause ?? '—'}</td>
+      <td><span style="background:rgba(108,142,255,0.1);color:var(--accent);padding:2px 8px;border-radius:4px;font-size:11px;">${(r.strategy ?? '—').replace('_',' ')}</span></td>
+      <td><span class="risk-pill ${r.critic === 'pass' ? 'risk-low' : 'risk-high'}">${r.critic ?? '—'}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+/* ══════════════════════════════════════════════
+   FULL PIPELINE
+══════════════════════════════════════════════ */
+async function runFullPipeline() {
+  $('runBtn').disabled = true;
+  $('runBtn').innerHTML = '<span class="spinner"></span> Running...';
+  toast('Running full pipeline: Telemetry → Risk → GenAI…', 'info');
+
+  showSection('overview');
+  await runRisk();
+  await new Promise(r => setTimeout(r, 600));
+  $('runBtn').disabled = false;
+  $('runBtn').innerHTML = '⚡ Run Full Pipeline';
+  toast('Pipeline complete!', 'success');
+}
+
+/* ══════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════ */
+window.addEventListener('DOMContentLoaded', () => {
+  initSignalChart();
+  initTeleChart();
+  checkHealth();
+  setInterval(checkHealth, 30000);
+});
+</script>
+</body>
+</html>
