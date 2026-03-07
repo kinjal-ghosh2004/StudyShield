@@ -7,45 +7,31 @@ Unlike traditional predictive models that simply flag a student as "At Risk" bas
 ## 📂 Project Structure
 
 ```text
-agentic_system/
+StudyShield/
 │
-├── architecture_design.md          # High-level component diagrams, data flow, ML integration
-├── demo_interface_design.md        # UI/UX specifications for the 4-panel dashboard demo
-├── demo_runner.py                  # EXECUTABLE: End-to-end simulated pipeline runner
-├── demo_script.md                  # Step-by-step 5-minute live presentation script
-├── patent_claims.md                # Breakdown of the novel, patentable components
+├── agentic_system/                 # Core AI intervention and ReAct agent system
+│   ├── architecture_design.md      # High-level component diagrams, data flow, ML integration
+│   ├── demo_interface_design.md    # UI/UX specifications for the dashboard
+│   ├── demo_runner.py              # End-to-end simulated pipeline script
+│   ├── patent_claims.md            # Breakdown of the novel, patentable components
+│   ├── behavioral_drift/           # Anomaly scoring and continuous baseline metrics
+│   ├── course_analytics/           # Telemetry aggregation for syllabus improvements
+│   ├── ethical_ai/                 # Governance layer handling fatigue and bias
+│   ├── genai_layer/                # Auto-generation of structured study guides
+│   ├── react_planner/              # Core ReAct Loop (Reason -> Act -> Reflect)
+│   ├── risk_prediction/            # XGBoost, LSTM Forecasting, and Survival Models
+│   └── rl_intervention/            # Contextual Bandit environment evaluating proxy rewards
 │
-├── behavioral_drift/
-│   ├── drift_detector.py           # Uses LSTM Autoencoders & EWMA for anomaly scoring
-│   ├── drift_detection_design.md   # Mathematical breakdown of continuous baseline metrics
-│   └── micro_warning_design.md     # Specifications for early low-intensity nudges
+├── ml_pipeline/                    # Machine learning models, training, and data prep
+├── oulad_augmentation/             # Data augmentation and synthesizing routines for OULAD dataset
+├── Plans/                          # Project planning and architecture documents
 │
-├── ethical_ai/
-│   ├── monitor.py                  # Governance layer handling fatigue, bias, and logging
-│   └── ethical_ai_layer_design.md  # Design document for fairness and transparency schemas
-│
-├── course_analytics/
-│   ├── analytics.py                # Aggregates cohort telemetry for syllabus improvements
-│   └── course_intelligence_design.md # Difficulty scoring & macro-recommendation specs
-│
-├── genai_layer/
-│   ├── generator.py                # Mocks LLM text generation for personalized payloads
-│   ├── revision_notes_design.md    # Specification for auto-generated structured study guides
-│   └── pace_optimizer_design.md    # Specification for adaptive weekly schedule restructuring
-│
-├── react_planner/
-│   ├── agent.py                    # Core ReAct Loop (Reason -> Act -> Reflect)
-│   ├── react_planner_design.md     # State space, heuristics, and agent memory logic
-│   └── memory_design.md            # Intervention memory tracker & component scoring
-│
-├── risk_prediction/
-│   ├── predictor.py                # Mocks XGBoost, LSTM Forecasting, and Survival Models
-│   ├── counterfactual_design.md    # Specification for estimating post-intervention risk reduction
-│   └── dropout_classifier_design.md# Specification for the 5-class behavioral taxonomy
-│
-└── rl_intervention/
-    ├── environment.py              # Contextual Bandit environment evaluating proxy rewards
-    └── rl_simulation_design.md     # Q-update logic and exploration vs exploitation math
+├── demo.py                         # EXECUTABLE: Streamlit interactive dashboard runner
+├── init_db.py                      # Database initialization script
+├── train_models.py                 # Script to train ML models
+├── docker-compose.yml              # Docker configuration for infrastructure setup
+├── requirements.txt                # Root project dependencies
+└── README.md                       # This document
 ```
 
 ## 🚀 How to Run the Demo
@@ -54,7 +40,7 @@ To test the multi-layered logic, execute the interactive python demo runner. Ens
 
 ```bash
 # From the root directory
-pip install -r agentic_system/requirements.txt
+pip install -r requirements.txt
 python demo.py
 ```
 
