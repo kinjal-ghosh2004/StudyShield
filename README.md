@@ -10,41 +10,65 @@ Unlike traditional predictive models that simply flag a student as "At Risk" bas
 StudyShield/
 │
 ├── agentic_system/                 # Core AI intervention and ReAct agent system
-│   ├── architecture_design.md      # High-level component diagrams, data flow, ML integration
-│   ├── demo_interface_design.md    # UI/UX specifications for the dashboard
-│   ├── demo_runner.py              # End-to-end simulated pipeline script
-│   ├── patent_claims.md            # Breakdown of the novel, patentable components
+│   ├── backend/                    # FastAPI backend, Kafka Streaming, Postgres/Mongo/Influx integrations
 │   ├── behavioral_drift/           # Anomaly scoring and continuous baseline metrics
 │   ├── course_analytics/           # Telemetry aggregation for syllabus improvements
 │   ├── ethical_ai/                 # Governance layer handling fatigue and bias
-│   ├── genai_layer/                # Auto-generation of structured study guides
+│   ├── genai_layer/                # Auto-generation of structured study guides (Gemini API)
 │   ├── react_planner/              # Core ReAct Loop (Reason -> Act -> Reflect)
 │   ├── risk_prediction/            # XGBoost, LSTM Forecasting, and Survival Models
-│   └── rl_intervention/            # Contextual Bandit environment evaluating proxy rewards
+│   ├── rl_intervention/            # Contextual Bandit environment evaluating proxy rewards
+│   └── dashboard.html              # Premium Interactive Web Dashboard
 │
-├── ml_pipeline/                    # Machine learning models, training, and data prep
-├── oulad_augmentation/             # Data augmentation and synthesizing routines for OULAD dataset
+├── ml_pipeline/                    # Prepared datasets and model training scripts (OULAD)
+├── oulad_augmentation/             # Data augmentation and synthesizing routines
 ├── Plans/                          # Project planning and architecture documents
 │
-├── demo.py                         # EXECUTABLE: Streamlit interactive dashboard runner
-├── init_db.py                      # Database initialization script
-├── train_models.py                 # Script to train ML models
-├── docker-compose.yml              # Docker configuration for infrastructure setup
+├── demo.py                         # EXECUTABLE: Streamlit interactive simulation dashboard
+├── train_models.py                 # EXECUTABLE: Trains the XGBoost/LSTM/Survival models
+├── init_db.py                      # EXECUTABLE: Initializes PostgreSQL tables
+├── test_*.py                       # Unit and integration test scripts
+├── docker-compose.yml              # Docker configuration for Postgres, Mongo, InfluxDB, Kafka, Zookeeper
 ├── requirements.txt                # Root project dependencies
+├── .env                            # API Keys and database credentials
 └── README.md                       # This document
 ```
 
-## 🚀 How to Run the Demo
+## 🚀 How to Run the Project
 
-To test the multi-layered logic, execute the interactive python demo runner. Ensure you have `numpy`, `torch`, and `streamlit` installed.
+This project contains two distinct operational modes: the **Full Agentic Backend Stack** (connecting the real ML models, Kafka streaming, and Gemini AI) and the **Technical Simulation Demo** (a standalone Streamlit app).
 
+### Option 1: Run the Full Agentic AI Backend & Dashboard (Actual Architecture)
+
+This mode runs the true production-like infrastructure:
+1. **Infrastructure**: Start the databases and event streaming cluster via Docker.
+   ```bash
+   docker compose up -d
+   ```
+2. **Environment**: Ensure your `.env` file is configured with the necessary database credentials and a `GEMINI_API_KEY`.
+3. **Database Setup**: Initialize the PostgreSQL tables:
+   ```bash
+   python init_db.py
+   ```
+4. **Model Training**: Train the XGBoost, LSTM, and Survival Analysis models on the synthesized OULAD dataset:
+   ```bash
+   python train_models.py
+   ```
+5. **Start API Server**: Launch the Uvicorn/FastAPI backend:
+   ```bash
+   python -m uvicorn agentic_system.backend.main:app --host 0.0.0.0 --port 8000
+   ```
+6. **Access Dashboard**: Open your browser and navigate to **[http://localhost:8000/dashboard](http://localhost:8000/dashboard)**. 
+   - From the dashboard, you can view the live ML telemetry feed, simulate Kafka streams, and trigger the GenAI Multi-Agent Reason-Act-Critic Loop.
+
+### Option 2: Run the Technical Simulation Demo (Streamlit)
+
+For a quick, standalone visual demonstration of the proprietary logic without needing Docker or actual databases:
 ```bash
-# From the root directory
 pip install -r requirements.txt
 python demo.py
 ```
-
-The script will launch a **Streamlit Dashboard** simulating 3 distinct student scenarios:
+This launches a Streamlit Dashboard simulating 3 scenarios:
 1. **Normal Engagement**: A stable baseline with no alerts.
 2. **Gradual Decline**: A slow dip triggering RL evaluation ($R_{intervene}$), ReAct memory reflection, and a pivot in strategy.
 3. **Sudden Performance Drop**: A critical rupture triggering an immediate emergency Human Escalation.
