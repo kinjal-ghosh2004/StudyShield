@@ -47,13 +47,16 @@ async def create_intervention(req: InterveneRequest):
         # Persist to MongoDB asynchronously (best-effort)
         try:
             from agentic_system.backend.db.session import get_mongo_db
+            import datetime
             db = get_mongo_db()
             await db["interventions"].insert_one({
                 "student_id": req.student_id,
+                "risk_score": req.dropout_prob,
                 "root_cause": result["root_cause"],
                 "strategy":   result["action_parameters"]["strategy"],
                 "payload":    result["generated_payload"],
                 "critic":     result["critic_evaluation"],
+                "timestamp":  datetime.datetime.now().strftime("%I:%M:%S %p")
             })
             logger.info(f"Intervention persisted to MongoDB for {req.student_id}")
         except Exception as e:

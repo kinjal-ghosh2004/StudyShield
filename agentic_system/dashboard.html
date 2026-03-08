@@ -983,13 +983,25 @@ function renderLogs(rows) {
   $('logBody').innerHTML = rows.map(r => {
     const risk = parseFloat(r.risk ?? r.risk_score ?? 0);
     const pill = risk > 0.7 ? 'risk-high' : risk > 0.4 ? 'risk-med' : 'risk-low';
+    
+    let criticStatus = '—';
+    let criticClass = 'risk-high';
+    if (typeof r.critic === 'object' && r.critic !== null) {
+      const pass = r.critic.safe_to_deliver !== false && r.critic.verdict !== 'fail';
+      criticStatus = pass ? 'pass' : 'fail';
+      criticClass = pass ? 'risk-low' : 'risk-high';
+    } else if (typeof r.critic === 'string') {
+      criticStatus = r.critic;
+      criticClass = criticStatus.toLowerCase() === 'pass' ? 'risk-low' : 'risk-high';
+    }
+
     return `<tr>
       <td style="color:var(--text-muted);font-family:'JetBrains Mono',monospace;font-size:11px;">${r.ts ?? r.timestamp ?? '—'}</td>
       <td>${r.student ?? r.student_id ?? '—'}</td>
       <td><span class="risk-pill ${pill}">${(risk * 100).toFixed(0)}%</span></td>
       <td>${r.cause ?? r.root_cause ?? '—'}</td>
       <td><span style="background:rgba(108,142,255,0.1);color:var(--accent);padding:2px 8px;border-radius:4px;font-size:11px;">${(r.strategy ?? '—').replace('_',' ')}</span></td>
-      <td><span class="risk-pill ${r.critic === 'pass' ? 'risk-low' : 'risk-high'}">${r.critic ?? '—'}</span></td>
+      <td><span class="risk-pill ${criticClass}">${criticStatus}</span></td>
     </tr>`;
   }).join('');
 }
