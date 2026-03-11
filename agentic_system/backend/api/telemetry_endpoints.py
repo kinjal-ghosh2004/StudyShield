@@ -8,10 +8,11 @@ router = APIRouter()
 
 class TelemetryEvent(BaseModel):
     student_id: str
-    event_type: str # 'video_pause', 'mouse_hesitation', 'login', 'quiz_submit'
-    course_id: str
+    event_type: str # 'video_play', 'mouse_hesitation', 'login', 'quiz_submit'
+    page_id: str
+    duration_sec: int
     timestamp: Optional[float] = None
-    payload: Dict[str, Any] # e.g., {"duration_seconds": 12, "module": "M_2"}
+    metadata: Dict[str, Any] # e.g., {"score": 62, "max_score": 100}
 
 @router.post("/telemetry/event")
 async def ingest_event(event: TelemetryEvent, background_tasks: BackgroundTasks):

@@ -7,7 +7,7 @@ student_id = f"STU_MOCK_{uuid.uuid4().hex[:6]}"
 user_data = json.dumps({
     "student_id": student_id,
     "name": "Test User",
-    "email": "test@example.com",
+    "email": f"test_{student_id}@example.com",
     "demographic_group": "A"
 }).encode('utf-8')
 

@@ -173,7 +173,7 @@ class RiskPredictor:
                         row[col] = lag
                 df_row = pd.DataFrame([row])
                 if self._scaler:
-                    arr = self._scaler.transform(df_row)
+                    arr = self._scaler.transform(df_row.values)
                 else:
                     arr = df_row.values
                 dmat = xgb.DMatrix(arr)

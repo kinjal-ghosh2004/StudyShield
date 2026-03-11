@@ -3,7 +3,7 @@ import asyncpg
 
 async def main():
     try:
-        conn = await asyncpg.connect('postgresql://ai_user:ai_password@localhost:5432/dropout_prevention')
+        conn = await asyncpg.connect('postgresql://ai_user:ai_password@localhost:5433/dropout_prevention')
         print("Success")
         await conn.close()
     except Exception as e:

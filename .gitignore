@@ -11,6 +11,7 @@ __pycache__/
 # Local logs and debug files
 *_logs.txt
 *_error.txt
+error_*.txt
 report.txt
 db_health.json
 

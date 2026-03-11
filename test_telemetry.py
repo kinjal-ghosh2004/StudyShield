@@ -10,20 +10,23 @@ events = [
     {
         "student_id": student_id,
         "event_type": "login",
-        "course_id": "CS101",
-        "payload": {"device": "desktop", "os": "windows"}
+        "page_id": "home",
+        "duration_sec": 0,
+        "metadata": {"device": "desktop", "os": "windows"}
     },
     {
         "student_id": student_id,
         "event_type": "video_play",
-        "course_id": "CS101",
-        "payload": {"video_id": "vid_01", "module": "M_1"}
+        "page_id": "module_3",
+        "duration_sec": 120,
+        "metadata": {"video_id": "vid_01"}
     },
     {
         "student_id": student_id,
         "event_type": "mouse_hesitation",
-        "course_id": "CS101",
-        "payload": {"hesitation_time_seconds": 15.5, "dom_element": "assignment_submit_btn"}
+        "page_id": "assignment_submit",
+        "duration_sec": 15,
+        "metadata": {"dom_element": "submit_btn"}
     }
 ]
 
